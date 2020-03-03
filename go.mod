@@ -3,7 +3,7 @@ module github.com/openstack-exporter/openstack-exporter
 go 1.13
 
 require (
-	github.com/gophercloud/gophercloud v0.6.0
+	github.com/gophercloud/gophercloud v0.8.1-0.20200303153613-058158b02f57
 	github.com/gophercloud/utils v0.0.0-20191129022341-463e26ffa30d
 	github.com/gorilla/mux v1.7.3
 	github.com/jarcoal/httpmock v1.0.4
