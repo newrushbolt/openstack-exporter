@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/utils/openstack/clientconfig"
@@ -81,6 +82,19 @@ func (exporter *BaseOpenStackExporter) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
+func (exporter *BaseOpenStackExporter) AddMetricCollectTime(collectTimeSeconds float64, metricName string, ch chan<- prometheus.Metric) {
+	metricPromatheuslabels := prometheus.Labels{
+		"openstack_service": exporter.GetName(),
+		"openstack_metric": metricName}
+	metric := prometheus.NewDesc(
+		"openstack_metric_collect_seconds",
+		"Time needed to collect metric from OpenStack API",
+		nil,
+		metricPromatheuslabels)
+	log.Debugf("Adding metric for collecting timings: %+s", metric)
+	ch <- prometheus.MustNewConstMetric(metric, prometheus.GaugeValue, float64(collectTimeSeconds))
+}
+
 func (exporter *BaseOpenStackExporter) Collect(ch chan<- prometheus.Metric) {
 	serviceUp := true
 
@@ -91,7 +105,12 @@ func (exporter *BaseOpenStackExporter) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
+		fnStartTime := time.Now()
 		err := metric.Fn(exporter, ch)
+		fnFinishTime := time.Now()
+		fnExecSeconds := fnFinishTime.Sub(fnStartTime).Seconds()
+		log.Debugf("Collecting <%s:%s> took <%f>s to execute", exporter.GetName(), name, fnExecSeconds)
+		exporter.AddMetricCollectTime(fnExecSeconds, name, ch)
 		if err != nil {
 			log.Errorln(err)
 			serviceUp = false
